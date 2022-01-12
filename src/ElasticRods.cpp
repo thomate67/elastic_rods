@@ -18,10 +18,9 @@ ElasticRod::ElasticRod(ElasticRodParameter params, std::vector<glm::vec4> vertic
 	m_pos = vertices;
 	m_vel = velocity;
 	m_mass = mass;
-	//m_u0 = u0;							//brauch ich das berhaupt, oder mach ich das eventuell anders
 	m_theta = theta;
 	m_clampType = type;
-	m_restpos = vertices;					//x0-xn with the stroke above them (notation for "in Restposition")
+	m_restpos = vertices;					
 
 	m_edges.resize(m_pos.size() - 1);
 	m_kb.resize(m_pos.size());
@@ -85,13 +84,13 @@ void ElasticRod::setup()
 	updateBishopFrame();
 	computeCurvatureBinormal();
 	computeMaterialFrame();
-	//m_m1Rest = m_m1;				//geht das auch?
-	//saves the material frames rotation in Restposition, is needed for rigid-body coupling
+
 	for (int i = 0; i < m_edges.size(); i++)
 	{
 		m_m1Rest[i] = m_m1[i];
 		m_m2Rest[i] = m_m2[i];
 	}
+
 	//computeOmega();
 	computeMaterialCurvature();
 	//updateQuasistaticFrame();
@@ -262,10 +261,10 @@ float ElasticRod::computeEnergy()
 	{
 		// bending energy term
 		omegaij = computeOmega(m_kb[i], m_m1[i - 1], m_m2[i - 1]);
-		energy += glm::dot((omegaij - m_restOmegaprev[i]), m_params.m_B * (omegaij - m_restOmegaprev[i])) * 0.5 / m_restRegionLength[i];		//muss ich nochmal nachprfen, ob das stimmt
+		energy += glm::dot((omegaij - m_restOmegaprev[i]), m_params.m_B * (omegaij - m_restOmegaprev[i])) * 0.5 / m_restRegionLength[i];		
 
 		omegaij = computeOmega(m_kb[i], m_m1[i], m_m2[i]);
-		energy += glm::dot((omegaij - m_restOmeganext[i]), m_params.m_B * (omegaij - m_restOmeganext[i])) * 0.5 / m_restRegionLength[i];		//muss ich nochmal nachprfen, ob das stimmt
+		energy += glm::dot((omegaij - m_restOmeganext[i]), m_params.m_B * (omegaij - m_restOmeganext[i])) * 0.5 / m_restRegionLength[i];		
 
 		//twisting energy term
 		mi = (m_theta[i] - m_theta[i - 1]);
@@ -608,16 +607,11 @@ void ElasticRod::simulate(float dt)
 		m_theta[m_theta.size() - 1] += dt * (0.01f / M_PI);
 	}
 	
-	//m_theta[m_theta.size() - 1] = dt * 100.0f / M_PI;
-	//m_theta[0] += 0.1f / M_PI;
-	//updateRod();
-	//computeMaterialFrame();
-	//updateQuasistaticFrame();
 
 	for (int i = 0; i < m_pos.size(); i++)
 	{
 		m_force[i] = glm::vec3(0.0f);
-		//std::cout << "Kraft: " << m_force[i].x << " ; " << m_force[i].y << " ; " << m_force[i].z << std::endl;
+		
 	}
 	
 	computeCenterlineForces(m_force);
@@ -649,18 +643,12 @@ void ElasticRod::simulate(float dt)
 		m_pos[i] += glm::vec4(glm::vec3(dt * m_vel[i]), 0.0f);
 	}
 
-	//distancefield collisions methode
-	//std::vector<glm::vec4> oldPos = m_pos;
 	dfCollision(prevPos, dt);
 
 	enforceInextensibility();
 
 	for (int i = 0; i < m_pos.size(); i++)
 	{
-		//	velocity correction via Verlet scheme
-		//glm::vec3 old_vel = m_vel[i];
-		//m_vel[i] = (glm::vec3(m_pos[i].x, m_pos[i].y, m_pos[i].z) - glm::vec3(prevPos[i].x, prevPos[i].y, prevPos[i].z)) / dt;
-		//m_vel[i] = glm::mix(old_vel, m_vel[i], 0.3f);
 		m_vel[i] = (glm::vec3(m_pos[i]) - glm::vec3(prevPos[i])) / dt;
 	}
 
@@ -677,9 +665,7 @@ void ElasticRod::addExternalForces(std::vector<glm::vec3>& forces)
 		}
 		if (m_windEnabled)
 		{
-			//TODO: Wind muss überhaupt noch implimentiert werden!
-			// aber müsste da nicht einfach ein vec3 reichen, der in x bläst 
-			//forces[i] += m_wind *kp ob da noch was hin muss gedöns;
+			//TODO: Wind 
 		}
 	}
 }
@@ -825,17 +811,6 @@ void ElasticRod::move(GLFWwindow* window)
 		m_pos[(m_pos.size() - 1) / 2] = glm::vec4(m_pos[(m_pos.size() - 1) / 2].x, m_pos[(m_pos.size() - 1) / 2].y - 0.025f, m_pos[(m_pos.size() - 1) / 2].z, 1.0f);
 	}
 
-	//if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
-	//{
-	//	m_pos[0] += glm::vec4(-0.001f, 0.0f, 0.0f, 0.0f);
-	//	m_pos[m_pos.size() - 1] += glm::vec4(0.001f, 0.0f, 0.0f, 0.0f);
-	//}
-	//
-	//if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
-	//{
-	//	m_pos[0] += glm::vec4(0.001f, 0.0f, 0.0f, 0.0f);
-	//	m_pos[m_pos.size() - 1] += glm::vec4(-0.001f, 0.0f, 0.0f, 0.0f);
-	//}
 
 	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
 	{
